@@ -1,0 +1,27 @@
+{
+    "id": "5C55BCEB",
+    "path": "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/R-Projects/ACS_Data_SP_All_Sample_5Y/ACS_Data_SP_All_Sample_5Y/ACS_Data_SP_AllSample_5Y.Rmd",
+    "project_path": null,
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1647441896085.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "chunk_output_type": "inline",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "160,45",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1647466810,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1647466810994,
+    "read_only": false,
+    "read_only_alternatives": []
+}

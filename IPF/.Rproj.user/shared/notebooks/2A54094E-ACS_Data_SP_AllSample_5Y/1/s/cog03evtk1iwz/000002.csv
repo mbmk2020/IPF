@@ -1,0 +1,15 @@
+"0","```r
+#Import data for marginals....
+
+AGEP <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/AGEP.csv\")
+SEX <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/SEX.csv\")
+RAC1P <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/RAC1P.csv\")
+ESR <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/ESR.csv\")
+HINCP <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/HINCP.csv\")
+HHT <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/HHT.csv\")
+HUPAC <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/HUPAC.csv\")
+NP <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/NP.csv\")
+WIF <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/WIF.csv\")
+
+
+```"

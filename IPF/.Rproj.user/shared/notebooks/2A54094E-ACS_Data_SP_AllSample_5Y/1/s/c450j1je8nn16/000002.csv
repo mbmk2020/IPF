@@ -1,0 +1,7 @@
+"0","```r
+##Import Data....
+ACS_2016_P_5Y <- read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/csv_pmd_2016_5%/ss16pmd.csv\")
+```"
+"1","Error in read_csv(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/csv_pmd_2016_5%/ss16pmd.csv\") : 
+  could not find function \"read_csv\"
+"

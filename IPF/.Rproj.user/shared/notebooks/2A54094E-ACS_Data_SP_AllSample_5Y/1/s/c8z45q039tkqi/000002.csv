@@ -1,0 +1,26 @@
+"0","```r
+# Crop data....
+variables_P <- c(\"SERIALNO\",\"AGEP\",\"SEX\",\"RAC1P\",\"ESR\")
+variables_H <- c(\"SERIALNO\",\"HINCP\",\"HHT\",\"HUPAC\",\"NP\",\"WIF\",\"PUMA\")
+
+ACS_2016_P_5Y_cropped <- ACS_2016_P_5Y%>%
+  select(variables_P)%>%
+  mutate_all(as.numeric)%>%
+  mutate(SERIALNO = format(SERIALNO,scientific=FALSE))
+```"
+"1","Note: Using an external vector in selections is ambiguous.
+i Use `all_of(variables_P)` instead of `variables_P` to silence this message.
+i See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+This message is displayed once per session.
+"
+"0","```r
+ACS_2016_H_5Y_cropped <- ACS_2016_H_5Y%>%
+  select(variables_H)%>%
+  mutate_all(as.numeric)%>%
+  mutate(SERIALNO = format(SERIALNO,scientific=FALSE))
+```"
+"1","Note: Using an external vector in selections is ambiguous.
+i Use `all_of(variables_H)` instead of `variables_H` to silence this message.
+i See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+This message is displayed once per session.
+"

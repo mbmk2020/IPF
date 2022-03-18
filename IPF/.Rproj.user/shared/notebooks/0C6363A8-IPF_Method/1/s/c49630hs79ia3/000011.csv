@@ -1,0 +1,7 @@
+"0","set.seed(42)"
+"0","r2<-"
+"0","  result$weight_tbl %>%"
+"0","  group_by(geo_tract) %>%"
+"0","  synthesize() "
+"0",""
+"0","r2"

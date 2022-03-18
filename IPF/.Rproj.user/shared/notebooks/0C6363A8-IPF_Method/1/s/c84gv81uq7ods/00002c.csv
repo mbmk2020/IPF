@@ -1,0 +1,3 @@
+"0","set.seed(42)"
+"0","r<-synthesize(result$weight_tbl, group_by = ""geo_tract"")"
+"0","r"

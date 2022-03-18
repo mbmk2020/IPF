@@ -1,0 +1,39 @@
+"0","```r
+# Copy Data for counties at the PUMA level...
+for(j in unique(PUMA_County_crosswalk$CountyName)){
+  setwd(\"C:/Users/mbmk2020/OneDrive - University of Maryland/Research/R-Projects/ACS_Data_SP_All_Sample_5Y/ACS_Data_SP_All_Sample_5Y/\")
+  dir.create(paste0(j))
+  PUMA_IN_County <- unique(PUMA_County_crosswalk[PUMA_County_crosswalk$CountyName%in%j,]$PUMA)
+  for(i in sort(PUMA_IN_County)){
+
+
+sub_data <- ACS_2016_PH_5Y[ACS_2016_PH_5Y$PUMA==i,]
+write.csv(sub_data,file = paste0(j,\"/PUMA_\",i,\"_Sample_Treated.csv\"),row.names=FALSE )
+  }
+}
+```"
+"1","Warning in dir.create(paste0(j)) : 'Allegany' already exists
+Warning in dir.create(paste0(j)) : 'Garrett' already exists
+Warning in dir.create(paste0(j)) : 'Washington' already exists
+Warning in dir.create(paste0(j)) : 'Frederick' already exists
+Warning in dir.create(paste0(j)) : 'Carroll' already exists
+Warning in dir.create(paste0(j)) : 'Baltimore' already exists
+Warning in dir.create(paste0(j)) : 'Harford' already exists
+Warning in dir.create(paste0(j)) : 'Cecil' already exists
+Warning in dir.create(paste0(j)) : 'Baltimore City' already exists
+Warning in dir.create(paste0(j)) : 'Howard' already exists
+Warning in dir.create(paste0(j)) : 'Montgomery' already exists
+Warning in dir.create(paste0(j)) : 'Prince George's' already exists
+Warning in dir.create(paste0(j)) : 'Anne Arundel' already exists
+Warning in dir.create(paste0(j)) : 'Queen Anne's' already exists
+Warning in dir.create(paste0(j)) : 'Talbot' already exists
+Warning in dir.create(paste0(j)) : 'Caroline' already exists
+Warning in dir.create(paste0(j)) : 'Dorchester' already exists
+Warning in dir.create(paste0(j)) : 'Kent' already exists
+Warning in dir.create(paste0(j)) : 'Wicomico' already exists
+Warning in dir.create(paste0(j)) : 'Worcester' already exists
+Warning in dir.create(paste0(j)) : 'Somerset' already exists
+Warning in dir.create(paste0(j)) : 'St. Mary's' already exists
+Warning in dir.create(paste0(j)) : 'Calvert' already exists
+Warning in dir.create(paste0(j)) : 'Charles' already exists
+"

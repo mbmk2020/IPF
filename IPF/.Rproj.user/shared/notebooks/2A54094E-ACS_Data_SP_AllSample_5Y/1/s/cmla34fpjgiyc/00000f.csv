@@ -1,0 +1,5 @@
+"0","  ACS_2016_PH_5Y <- ACS_2016_PH_5Y%>%"
+"0","    select(c(HINCP,NP,AGEP,RAC1P,ESR,SEX,WIF,HUPAC,HHT,PUMA))"
+"2","Error in select(., c(HINCP, NP, AGEP, RAC1P, ESR, SEX, WIF, HUPAC, HHT,  : 
+  object 'ACS_2016_PH_5Y' not found
+"

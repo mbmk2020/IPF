@@ -1,0 +1,337 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages(c("tidyverse","readxl"))
+install.packages("writexl")
+install.packages("xlsx")
+install.packages("janitor")
+```
+
+```{r}
+library("readxl")
+library("writexl")
+library("tidyverse")
+library("xlsx")
+library("janitor")
+```
+
+```{r}
+#To insert row in the beginning and name all rows as all columns names without numbers
+insertRow <- function(existingDF) {
+  existingDF <-
+  existingDF %>%
+     add_row(.before = 1)
+  existingDF[] <-lapply(existingDF, as.character)
+  existingDF[1,] <- t(as.data.frame(gsub("[[:digit:]]", "", gsub("\\.", "", colnames(existingDF)))))
+  #gsub("[[:digit:]]", "", gsub("\\.", "", colnames(existingDF)))
+  #gsub("_","",gsub("[[:digit:]]", "", gsub("\\.", "", colnames(existingDF))))
+  existingDF[is.na(existingDF)] <- ""
+  existingDF
+}
+```
+
+```{r}
+options("scipen"=100, "digits"=4) # to avoid exponential formatting for numbers
+
+HH_Sample_5_Y <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/ss16hmd-5years.csv")
+
+P_Sample_5_Y <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/ss16pmd-5years.csv")
+
+
+#Prepare POPGEN Files for specific region: 
+geo_sample_mapping_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/geo_sample_mapping.csv"))
+
+
+household_marginals_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/household_marginals.csv"))
+
+
+household_sample_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/household_sample.csv"))
+
+person_marginals_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/person_marginals.csv"))
+
+person_sample_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/person_sample.csv"))
+
+region_geo_mapping_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/region_geo_mapping.csv"))
+
+region_household_marginals_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/region_household_marginals.csv"))
+
+region_person_marginals_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/region_person_marginals.csv"))
+
+region_sample_mapping_2 <- insertRow(read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland(All pumas all variables)/region_sample_mapping.csv"))
+
+
+```
+
+```{r}
+#Extract HH data for specific PUMA...
+options("scipen"=100, "digits"=4) # to avoid exponential formatting for numbers
+PUMAs = c(1201)
+
+#Household Sample
+h_sample <- HH_Sample_5_Y%>%
+  mutate_all(as.numeric)%>%
+  filter(PUMA%in%PUMAs)%>%
+  select(SERIALNO, PUMA, NP,HHT, HINCP,	WIF, HUPAC)%>%
+  mutate(hhrtotals=1,hhtotals =1)
+
+h_sample[h_sample$HHT%in%c(4,5,6,7),]$WIF = -1 # To fix WIF and HHT problem
+h_sample = drop_na(h_sample)
+h_sample = h_sample[h_sample$NP>0,]
+h_sample = h_sample[h_sample$HHT>0,]
+h_sample = h_sample[h_sample$HINCP>0,]
+h_sample = h_sample[h_sample$HUPAC>0,]
+h_sample[h_sample$HINCP%in%c(1:state_number),]$HINCP = 1
+h_sample[h_sample$HINCP%in%c(25000:49999),]$HINCP = 2
+h_sample[h_sample$HINCP%in%c(50000:74999),]$HINCP = 3
+h_sample[h_sample$HINCP%in%c(75000:99999),]$HINCP = 4
+h_sample[h_sample$HINCP%in%c(100000:199999),]$HINCP = 5
+h_sample[h_sample$HINCP>=200000,]$HINCP = 6
+h_sample[h_sample$NP>=7,]$NP = 7 
+#h_sample = h_sample[h_sample$WIF>0,]
+
+
+h_sample <-
+  h_sample%>%
+  rename(hid=SERIALNO,
+         sample_geo=PUMA,
+         hnp = NP,
+         hhht = HHT,
+         hhincp = HINCP,
+         hwif = WIF,
+         hhupac = HUPAC)
+
+write.csv(h_sample , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/household_sample.csv", row.names=FALSE)
+
+#########################################################################################
+
+#Extract Person data for specific PUMA...
+options("scipen"=100, "digits"=4) # to avoid exponential formatting for numbers
+
+#Household Sample
+p_sample <- P_Sample_5_Y%>%
+  mutate_all(as.numeric)%>%
+  filter(PUMA%in%PUMAs)%>%
+  mutate(ptotals=1,prtotals =1)%>%
+  select(SERIALNO, SPORDER, PUMA,ptotals,prtotals, AGEP,SEX, ESR,	RAC1P)
+
+p_sample[p_sample$AGEP<16,]$ESR = 0 # To fix ESR and HHT problem
+#p_sample$ESR = p_sample$ESR +1 
+
+
+p_sample <-
+  p_sample%>%
+  rename(hid=SERIALNO,
+         pid=SPORDER,
+         sample_geo=PUMA,
+         rpage = AGEP,
+         rpsex = SEX,
+         rpesr = ESR,
+         rpracp = RAC1P)
+
+
+
+write.csv(p_sample , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/person_sample.csv", row.names=FALSE)
+
+####################################################################################
+
+#Selecting other needed files for POPGEN specific PUMAs
+options("scipen"=100, "digits"=4) # to avoid exponential formatting for numbers
+
+#Select Specific PUMAs...
+#PUMAs = c(1201)
+
+#filter for input PUMAs
+geos = geo_sample_mapping_2[geo_sample_mapping_2$sample_geo%in%PUMAs,]$geo
+regions = region_geo_mapping_2[region_geo_mapping_2$geo%in%geos,]$region
+
+geo_sample_mapping <-geo_sample_mapping_2%>%filter(geo%in%c("geo",geos))
+
+
+household_marginals <- household_marginals_2%>%filter(variable_names%in%c("variable_categories","geo","variable_names",geos))
+
+
+household_sample <- household_sample_2%>%filter(sample_geo%in%c("sample_geo",PUMAs))
+
+person_marginals <- person_marginals_2%>%filter(varialbe_names%in%c("variable_categories","geo","varialbe_names",geos))
+
+person_sample <- person_sample_2%>%filter(sample_geo%in%c("sample_geo",PUMAs))
+
+region_geo_mapping <- region_geo_mapping_2%>%filter(geo%in%c("geo",geos))
+
+region_household_marginals <- region_household_marginals_2%>%filter(variable_names%in%c("variable_categories","region","variable_names",regions))
+
+region_person_marginals <- region_person_marginals_2%>%filter(variable_names%in%c("variable_categories","region","variable_names",regions))
+
+region_sample_mapping <- region_sample_mapping_2%>%filter(region%in%c("region",regions))
+
+
+write.table(geo_sample_mapping , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/geo_sample_mapping.csv", sep=",", row.names=FALSE, col.names = FALSE)
+
+write.table(household_marginals , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/household_marginals.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(household_sample , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/household_sample.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(person_marginals , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/person_marginals.csv",sep=",", row.names=FALSE, col.names = FALSE)
+
+write.table(person_sample , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/person_sample.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_geo_mapping , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_geo_mapping.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_household_marginals , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_household_marginals.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_person_marginals , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_person_marginals.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_sample_mapping , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_sample_mapping.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+
+
+```
+
+
+
+```{r}
+#Preparing files for the entire Maryland at PUMA level...
+options("scipen"=100, "digits"=4) # to avoid exponential formatting for numbers
+
+region_number = 2
+state_number = 24
+#PUMAs <- c((unique(household_sample_2[-c(1,2,3),]$sample_geo)))
+PUMAs <- as.character(c(301,302))
+
+geo_sample_mapping_all <- data.frame(
+  geo	= numeric(length(unique(household_sample_2[-c(1),]$sample_geo))),
+  sample_geo = numeric(length(unique(household_sample_2[-c(1),]$sample_geo)))
+)%>%
+  mutate(geo = unique(household_sample_2[-c(1),]$sample_geo))%>%
+  mutate(sample_geo = state_number)%>%
+  filter(geo%in%PUMAs)
+
+geo_sample_mapping_all <- rbind(geo_sample_mapping_2[c(1),],geo_sample_mapping_all)
+
+###########################################################################################
+
+household_marginals_all <- household_marginals_2[-c(1,2,3),]%>%
+  merge(geo_sample_mapping_2[-c(1),],by.x =
+"variable_names", by.y = "geo")%>%
+  mutate(variable_names = sample_geo)%>%
+  select(-c(sample_geo))%>%
+  sapply(as.numeric)%>%
+  as.data.frame()%>%
+  group_by(variable_names)%>%
+  replace(is.na(.), 0) %>%
+  summarise_all(sum)%>%
+  filter(variable_names%in%PUMAs)
+
+household_marginals_all<-rbind(household_marginals_2[c(1,2,3),],household_marginals_all)
+
+###########################################################################################
+
+household_sample_all <- household_sample_2[-c(1),]%>%
+  filter(sample_geo%in%PUMAs)%>%
+  mutate(sample_geo=state_number)
+
+household_sample_all <- rbind(household_sample_2[c(1),],household_sample_all)
+
+###########################################################################################
+
+person_marginals_all <- person_marginals_2[-c(1,2,3),]%>%
+  merge(geo_sample_mapping_2[-c(1),],by.x =
+"varialbe_names", by.y = "geo")%>%
+  mutate(varialbe_names = sample_geo)%>%
+  select(-c(sample_geo))%>%
+  sapply(as.numeric)%>%
+  as.data.frame()%>%
+  group_by(varialbe_names)%>%
+  replace(is.na(.), 0) %>%
+  summarise_all(sum)%>%
+  filter(varialbe_names%in%PUMAs)
+
+person_marginals_all<-rbind(person_marginals_2[c(1,2,3),],person_marginals_all)
+
+###########################################################################################
+
+person_sample_all <- person_sample_2[-c(1),]%>%
+  filter(sample_geo%in%PUMAs)%>%
+  mutate(sample_geo=state_number)
+
+person_sample_all <- rbind(person_sample_2[c(1),],person_sample_all)
+
+###########################################################################################
+
+region_geo_mapping_all <- data.frame(
+  region = numeric(length(unique(household_sample_2[-c(1),]$sample_geo))),
+  geo = numeric(length(unique(household_sample_2[-c(1),]$sample_geo)))
+)%>%
+  mutate(region = region_number)%>%
+  mutate(geo = unique(household_sample_2[-c(1),]$sample_geo))%>%
+  filter(geo%in%PUMAs)
+
+region_geo_mapping_all <- rbind(region_geo_mapping_2[c(1),],region_geo_mapping_all) 
+
+###########################################################################################
+region_household_marginals_all <- region_household_marginals_2[-c(1,2,3),]%>%
+  mutate(variable_names = region_number)%>%
+  sapply(as.numeric)%>%
+  as.data.frame()%>%
+  group_by(variable_names)%>%
+  replace(is.na(.), 0) %>%
+  summarise_all(sum)
+
+region_household_marginals_all <- rbind(region_household_marginals_2[c(1,2,3),],region_household_marginals_all)
+
+###########################################################################################
+
+
+region_person_marginals_all <- region_person_marginals_2[-c(1,2,3),]%>%
+  mutate(variable_names = region_number)%>%
+  sapply(as.numeric)%>%
+  as.data.frame()%>%
+  group_by(variable_names)%>%
+  replace(is.na(.), 0) %>%
+  summarise_all(sum)
+
+region_person_marginals_all <- rbind(region_person_marginals_2[c(1,2,3),],region_person_marginals_all)
+
+###########################################################################################
+
+region_sample_mapping_all <- data.frame(
+  region= character(1),
+  sample_geo=character(1),
+  name=character(1)
+)%>%
+  mutate(region = region_number)%>%
+  mutate(sample_geo=-1)%>%
+  mutate(name = "Maryland")
+  
+
+region_sample_mapping_all <- rbind(region_sample_mapping_2[c(1),],region_sample_mapping_all)
+
+write.csv(household_sample_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/household_sample.csv", row.names=FALSE)
+
+write.csv(person_sample_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/person_sample.csv", row.names=FALSE)
+
+write.table(geo_sample_mapping_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/geo_sample_mapping.csv", sep=",", row.names=FALSE, col.names = FALSE)
+
+write.table(household_marginals_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/household_marginals.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(household_sample_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/household_sample.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(person_marginals_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/person_marginals.csv",sep=",", row.names=FALSE, col.names = FALSE)
+
+write.table(person_sample_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/person_sample.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_geo_mapping_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_geo_mapping.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_household_marginals_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_household_marginals.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_person_marginals_all , "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_person_marginals.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+write.table(region_sample_mapping_all, "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/IPF(Test)/PopGen_Practice_Package/PopGen_Practice_Package/PopGen_Practice_Package/Maryland/region_sample_mapping.csv", sep=",",row.names=FALSE, col.names = FALSE)
+
+```
+
+
+

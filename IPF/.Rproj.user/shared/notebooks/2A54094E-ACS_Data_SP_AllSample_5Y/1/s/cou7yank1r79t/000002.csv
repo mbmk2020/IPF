@@ -1,0 +1,25 @@
+"0","```r
+# Compute correlation matrix for PUMAs/County...
+png(\"correlation_matrix.png\", width=15, height=20, units=\"in\", res=300)
+par(mfrow=c(8,7))
+
+for(j in unique(PUMA_County_crosswalk$CountyName)){
+  PUMA_IN_County <- unique(PUMA_County_crosswalk[PUMA_County_crosswalk$CountyName%in%j,]$PUMA)
+  for(i in sort(PUMA_IN_County)){
+  sub_data <- ACS_2016_PH_5Y[ACS_2016_PH_5Y$PUMA==i,]%>%
+    select(-c(PUMA))%>%
+     na.omit()
+  corrplot(cor(sub_data), method=c(\"color\"),type = \"lower\",addCoef.col= \"black\",diag = F,tl.col=\"black\", tl.srt = 90,number.font =    2,sig.level = 0.05, number.cex = 0.8,title = paste0(j,\"_\",i),mar=c(0,0,1,0))
+ 
+  }
+
+}
+dev.off() #save the plot...
+```"
+"1","null device 
+          1 
+"
+"1","Warning in gzfile(file, \"wb\") :
+  cannot open compressed file 'C:/Users/mbmk2020/OneDrive - University of Maryland/Research/R-Projects/ACS_Data_SP_All_Sample_5Y/ACS_Data_SP_All_Sample_5Y/.Rproj.user/shared/notebooks/40404266-ACS_Data_SP_AllSample_5Y/1/75FBFFD3C4FDAFC5/cwg61jm2t1ugu_t/5b93815fefbb440ab38614e62b694175.snapshot', probable reason 'No such file or directory'
+Error in gzfile(file, \"wb\") : cannot open the connection
+"

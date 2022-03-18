@@ -1,0 +1,699 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+install.packages(c("tidyverse","readxl"))
+install.packages("writexl")
+install.packages("xlsx")
+install.packages("corrplot")
+install.packages("gridExtra")
+install.packages("grid")
+library("readxl")
+library("writexl")
+library("tidyverse")
+library("xlsx")
+library("corrplot")
+library("gridExtra")
+library("grid")
+
+```
+
+```{r}
+##Import Data....
+ACS_2016_P_5Y <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/csv_pmd_2016_5%/ss16pmd.csv")
+ACS_2016_H_5Y <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/csv_hmd_2016_5%/ss16hmd.csv")
+
+
+PUMA_County_crosswalk <- read_excel("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/PumaID_2.xlsx")%>%
+  select(c(PUMA,CountyName))
+```
+
+
+```{r}
+# Crop data....
+variables_P <- c("SERIALNO","AGEP","SEX","RAC1P","ESR")
+variables_H <- c("SERIALNO","HINCP","HHT","HUPAC","NP","WIF","PUMA")
+
+ACS_2016_P_5Y_cropped <- ACS_2016_P_5Y%>%
+  select(variables_P)%>%
+  mutate_all(as.numeric)%>%
+  mutate(SERIALNO = format(SERIALNO,scientific=FALSE))
+
+ACS_2016_H_5Y_cropped <- ACS_2016_H_5Y%>%
+  select(variables_H)%>%
+  mutate_all(as.numeric)%>%
+  mutate(SERIALNO = format(SERIALNO,scientific=FALSE))
+
+
+
+```
+
+
+```{r}
+# Merge data....
+ACS_2016_PH_5Y <- left_join(ACS_2016_P_5Y_cropped,ACS_2016_H_5Y_cropped, by = 'SERIALNO')%>%
+   mutate_all(as.numeric)%>%
+   mutate(SERIALNO = format(SERIALNO,scientific=FALSE))
+```
+
+
+```{r}
+  ACS_2016_PH_5Y <- ACS_2016_PH_5Y%>%
+    select(c(HINCP,NP,AGEP,RAC1P,ESR,SEX,WIF,HUPAC,HHT,PUMA))
+  
+  # The ACS file has NAs for WIF when HHT is (4,5,6,7) where it should be -1
+  # The ACS file has NAs for ESR when AGE is (<16) where it should be 0
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HHT%in%c(4,5,6,7),]$WIF = -1 # To fix WIF and HHT problem
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$AGEP<16,]$ESR = 0 # To fix ESR and HHT problem
+  
+   
+  #Remove NA -ve and zeros
+  ACS_2016_PH_5Y = drop_na(ACS_2016_PH_5Y)
+
+  ACS_2016_PH_5Y = ACS_2016_PH_5Y[ACS_2016_PH_5Y$NP>0,]
+  ACS_2016_PH_5Y = ACS_2016_PH_5Y[ACS_2016_PH_5Y$HHT>0,]
+  ACS_2016_PH_5Y = ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP>0,]
+  ACS_2016_PH_5Y = ACS_2016_PH_5Y[ACS_2016_PH_5Y$HUPAC>0,]
+  #ACS_2016_PH_5Y = ACS_2016_PH_5Y[ACS_2016_PH_5Y$WIF>=0,]
+  
+  #Fix the ones has shift by 1
+  #ACS_2016_PH_5Y$WIF =ACS_2016_PH_5Y$WIF+1     
+  ACS_2016_PH_5Y$ESR = ACS_2016_PH_5Y$ESR +1   
+  ACS_2016_PH_5Y$AGEP= ACS_2016_PH_5Y$AGEP +1  
+  
+  #Group NP >=7 to 7
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$NP>=7,]$NP = 7 
+  
+  #Income levels
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP%in%c(1:24999),]$HINCP = 1
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP%in%c(25000:49999),]$HINCP = 2
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP%in%c(50000:74999),]$HINCP = 3
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP%in%c(75000:99999),]$HINCP = 4
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP%in%c(100000:199999),]$HINCP = 5
+  ACS_2016_PH_5Y[ACS_2016_PH_5Y$HINCP>=200000,]$HINCP = 6
+ 
+
+```
+
+
+```{r}
+# Copy Data for counties at the PUMA level...
+for(j in unique(PUMA_County_crosswalk$CountyName)){
+  setwd("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/R-Projects/ACS_Data_SP_All_Sample_5Y/ACS_Data_SP_All_Sample_5Y/")
+  dir.create(paste0(j))
+  PUMA_IN_County <- unique(PUMA_County_crosswalk[PUMA_County_crosswalk$CountyName%in%j,]$PUMA)
+  for(i in sort(PUMA_IN_County)){
+
+
+sub_data <- ACS_2016_PH_5Y[ACS_2016_PH_5Y$PUMA==i,]
+write.csv(sub_data,file = paste0(j,"/PUMA_",i,"_Sample_Treated.csv"),row.names=FALSE )
+  }
+}
+
+```
+```{r}
+# Compute correlation matrix for PUMAs/County...
+png("correlation_matrix.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+
+for(j in unique(PUMA_County_crosswalk$CountyName)){
+  PUMA_IN_County <- unique(PUMA_County_crosswalk[PUMA_County_crosswalk$CountyName%in%j,]$PUMA)
+  for(i in sort(PUMA_IN_County)){
+  sub_data <- ACS_2016_PH_5Y[ACS_2016_PH_5Y$PUMA==i,]%>%
+    select(-c(PUMA))%>%
+     na.omit()
+  corrplot(cor(sub_data), method=c("color"),type = "lower",addCoef.col= "black",diag = F,tl.col="black", tl.srt = 90,number.font =    2,sig.level = 0.05, number.cex = 0.8,title = paste0(j,"_",i),mar=c(0,0,1,0))
+ 
+  }
+
+}
+dev.off() #save the plot...
+
+
+```
+```{r}
+#Import data for marginals....
+
+AGEP <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/AGEP.csv")
+SEX <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/SEX.csv")
+RAC1P <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/RAC1P.csv")
+ESR <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/ESR.csv")
+HINCP <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/HINCP.csv")
+HHT <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/HHT.csv")
+HUPAC <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/HUPAC.csv")
+NP <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/NP.csv")
+WIF <- read_csv("C:/Users/mbmk2020/OneDrive - University of Maryland/Research/Synthetic population/Explanation/Data for VAE/Pascal/Census Marginals/WIF.csv")
+
+
+```
+
+
+```{r}
+#Compute Marginals at the PUMA level...
+AGEP_P_All <-
+  AGEP%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(AGE)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate_at(vars(`1`:`103`), funs(./ `0`))%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+
+AGEP_P <-
+  AGEP%>%
+  mutate(AGELEVEL_2=case_when(
+    .$CLASS%in%c(0)~0,
+    .$CLASS%in%c(1:20)~1,
+    .$CLASS%in%c(21:40)~2,
+    .$CLASS%in%c(41:60)~3,
+    .$CLASS%in%c(61:80)~4,
+    .$CLASS>=81~5
+    ))%>%
+  group_by(PUMA,AGELEVEL_2) %>%
+  summarize(n = sum(AGE)) %>%
+  spread(key = AGELEVEL_2,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`, `5` = `5`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+SEX_P <-
+  SEX%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(SEX)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+RAC1P_P <-
+  RAC1P%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(RAC1P)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`,
+         `5` = `5`/`0`, `6` = `6`/`0`, `7` = `7`/`0`, `8` = `8`/`0`, `9` = `9`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+ESR_P <-
+  ESR%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(ESR)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`,
+         `5` = `5`/`0`, `6` = `6`/`0`, `7` = `7`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+HINCP_P <-
+  HINCP%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(INC_R)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`,
+         `5` = `5`/`0`, `6` = `6`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+HHT_P <-
+  HHT%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(HHT)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`,
+         `5` = `5`/`0`, `6` = `6`/`0`, `7` = `7`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+HUPAC_P <-
+  HUPAC%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(HUPAC)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+NP_P <-
+  NP%>%
+  group_by(PUMA,CLASS) %>%
+  summarize(n = sum(NP)) %>%
+  spread(key = CLASS,value = n)%>%
+  mutate(`1`=`1`/`0`, `2` = `2`/`0`, `3` = `3`/`0`, `4` = `4`/`0`,
+         `5` = `5`/`0`, `6` = `6`/`0`, `7` = `7`/`0`)%>%
+  filter(PUMA!=0)%>%
+  select(-c(`0`))
+
+WIF_P <-
+  ACS_2016_PH_5Y%>%
+  group_by(PUMA,WIF)%>%
+  summarise(n=n())%>%
+  spread(key = WIF,value = n)%>%
+  mutate(Total=`-1`+`0`+`1`+`2`+`3`)%>%
+  mutate(`-1`=`-1`/Total,`0`=`0`/Total, `1`=`1`/Total, `2`=`2`/Total,`3`=`3`/Total)%>%
+  filter(PUMA!=0)%>%
+  select(-c(Total))
+
+```
+```{r}
+#Pivot_longer...
+ AGE_P_All_2<-
+    AGEP_P_All %>%
+    pivot_longer(-1, names_to = "AGE", values_to = "Share")
+
+
+  AGE_P_2<-
+    AGEP_P %>%
+    pivot_longer(-1, names_to = "AGE", values_to = "Share")
+  
+  
+  SEX_P_2<-
+    SEX_P %>%
+    pivot_longer(-1, names_to = "SEX", values_to = "Share")
+   
+  RAC1P_P_2<-
+    RAC1P_P %>%
+    pivot_longer(-1, names_to = "RAC1P", values_to = "Share")
+  
+    
+  ESR_P_2<-
+    ESR_P %>%
+    pivot_longer(-1, names_to = "ESR", values_to = "Share")
+  
+  
+  HINCP_P_2<-
+    HINCP_P %>%
+    pivot_longer(-1, names_to = "HINCP", values_to = "Share")
+      
+  HHT_P_2<-
+    HHT_P %>%
+    pivot_longer(-1, names_to = "HHT", values_to = "Share")
+  
+       
+  HUPAC_P_2<-
+    HUPAC_P %>%
+    pivot_longer(-1, names_to = "HUPAC", values_to = "Share")
+  
+        
+  NP_P_2<-
+    NP_P %>%
+    pivot_longer(-1, names_to = "NP", values_to = "Share")
+         
+  WIF_P_2<-
+    WIF_P %>%
+    pivot_longer(-1, names_to = "WIF", values_to = "Share")
+  
+```
+
+
+```{r}
+#Compute CDF and ranges at the PUMA level....
+AGE_P_3<- 
+  AGE_P_All_2%>%
+  mutate(CLASS_AGE = AGE, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, AGE))
+for (i in seq(1,nrow(AGE_P_3), by= length(unique(AGE_P_3$CLASS_AGE)))){
+  sum = 0
+  for (j in seq(1,length(unique(AGE_P_3$CLASS_AGE)))){
+    AGE_P_3$Range0[i+j-1] = sum
+    sum = sum+AGE_P_3$DIF[i+j-1]
+    AGE_P_3$CDF[i+j-1] = sum
+    AGE_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(AGE_P_3 , "AGEP.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+SEX_P_3<- 
+  SEX_P_2%>%
+  mutate(CLASS_SEX = SEX, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, SEX))
+for (i in seq(1,nrow(SEX_P_3), by= length(unique(SEX_P_3$CLASS_SEX)))){
+  sum = 0
+  for (j in seq(1,length(unique(SEX_P_3$CLASS_SEX)))){
+    SEX_P_3$Range0[i+j-1] = sum
+    sum = sum+SEX_P_3$DIF[i+j-1]
+    SEX_P_3$CDF[i+j-1] = sum
+    SEX_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(SEX_P_3 , "SEX.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+ESR_P_3<- 
+  ESR_P_2%>%
+  mutate(CLASS_ESR = ESR, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, ESR))
+for (i in seq(1,nrow(ESR_P_3), by= length(unique(ESR_P_3$CLASS_ESR)))){
+  sum = 0
+  for (j in seq(1,length(unique(ESR_P_3$CLASS_ESR)))){
+    ESR_P_3$Range0[i+j-1] = sum
+    sum = sum+ESR_P_3$DIF[i+j-1]
+    ESR_P_3$CDF[i+j-1] = sum
+    ESR_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(ESR_P_3 , "ESR.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+RAC1P_P_3<- 
+  RAC1P_P_2%>%
+  mutate(CLASS_RAC1P = RAC1P, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, RAC1P))
+for (i in seq(1,nrow(RAC1P_P_3), by= length(unique(RAC1P_P_3$CLASS_RAC1P)))){
+  sum = 0
+  for (j in seq(1,length(unique(RAC1P_P_3$CLASS_RAC1P)))){
+    RAC1P_P_3$Range0[i+j-1] = sum
+    sum = sum+RAC1P_P_3$DIF[i+j-1]
+    RAC1P_P_3$CDF[i+j-1] = sum
+    RAC1P_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(RAC1P_P_3 , "RAC1P.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+HINCP_P_3<- 
+  HINCP_P_2%>%
+  mutate(CLASS_HINCP = HINCP, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, HINCP))
+for (i in seq(1,nrow(HINCP_P_3), by= length(unique(HINCP_P_3$CLASS_HINCP)))){
+  sum = 0
+  for (j in seq(1,length(unique(HINCP_P_3$CLASS_HINCP)))){
+    HINCP_P_3$Range0[i+j-1] = sum
+    sum = sum+HINCP_P_3$DIF[i+j-1]
+    HINCP_P_3$CDF[i+j-1] = sum
+    HINCP_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(HINCP_P_3 , "HINCP.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+HUPAC_P_3<- 
+  HUPAC_P_2%>%
+  mutate(CLASS_HUPAC = HUPAC, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, HUPAC))
+for (i in seq(1,nrow(HUPAC_P_3), by= length(unique(HUPAC_P_3$CLASS_HUPAC)))){
+  sum = 0
+  for (j in seq(1,length(unique(HUPAC_P_3$CLASS_HUPAC)))){
+    HUPAC_P_3$Range0[i+j-1] = sum
+    sum = sum+HUPAC_P_3$DIF[i+j-1]
+    HUPAC_P_3$CDF[i+j-1] = sum
+    HUPAC_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(HUPAC_P_3 , "HUPAC.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+NP_P_3<- 
+  NP_P_2%>%
+  mutate(CLASS_NP = NP, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, NP))
+for (i in seq(1,nrow(NP_P_3), by= length(unique(NP_P_3$CLASS_NP)))){
+  sum = 0
+  for (j in seq(1,length(unique(NP_P_3$CLASS_NP)))){
+    NP_P_3$Range0[i+j-1] = sum
+    sum = sum+NP_P_3$DIF[i+j-1]
+    NP_P_3$CDF[i+j-1] = sum
+    NP_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(NP_P_3 , "NP.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+HHT_P_3<- 
+  HHT_P_2%>%
+  mutate(CLASS_HHT = HHT, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, HHT))
+for (i in seq(1,nrow(HHT_P_3), by= length(unique(HHT_P_3$CLASS_HHT)))){
+  sum = 0
+  for (j in seq(1,length(unique(HHT_P_3$CLASS_HHT)))){
+    HHT_P_3$Range0[i+j-1] = sum
+    sum = sum+HHT_P_3$DIF[i+j-1]
+    HHT_P_3$CDF[i+j-1] = sum
+    HHT_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(HHT_P_3 , "HHT.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+WIF_P_3<- 
+  WIF_P_2%>%
+  mutate(CLASS_WIF = WIF, DIF = Share, CDF=0, Range0=0, Range1=0)%>%
+  select(-c(Share, WIF))
+for (i in seq(1,nrow(WIF_P_3), by= length(unique(WIF_P_3$CLASS_WIF)))){
+  sum = 0
+  for (j in seq(1,length(unique(WIF_P_3$CLASS_WIF)))){
+    WIF_P_3$Range0[i+j-1] = sum
+    sum = sum+WIF_P_3$DIF[i+j-1]
+    WIF_P_3$CDF[i+j-1] = sum
+    WIF_P_3$Range1[i+j-1] = sum
+  }
+}
+write.csv(WIF_P_3 , "WIF.csv", row.names=FALSE)
+############################################################
+############################################################
+############################################################
+
+
+
+
+```
+
+
+
+```{r}
+# Very basic bar graph
+png("AGE.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+AGE_P_2%>%
+  ggplot(aes(x=AGE, y=Share, fill =AGE)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("SEX.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+SEX_P_2%>%
+  ggplot(aes(x=SEX, y=Share, fill =SEX)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("RAC1P.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+RAC1P_P_2%>%
+  ggplot(aes(x=RAC1P, y=Share, fill =RAC1P)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("ESR.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+ESR_P_2%>%
+  ggplot(aes(x=ESR, y=Share, fill =ESR)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE) +
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("HINCP.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+HINCP_P_2%>%
+  ggplot(aes(x=HINCP, y=Share, fill =HINCP)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("HHT.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+HHT_P_2%>%
+  ggplot(aes(x=HHT, y=Share, fill =HHT)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("HUPAC.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+HUPAC_P_2%>%
+  ggplot(aes(x=HUPAC, y=Share, fill=HUPAC)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("NP.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+NP_P_2%>%
+  ggplot(aes(x=NP, y=Share, fill = NP)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot..
+
+png("WIF.png", width=15, height=20, units="in", res=300)
+par(mfrow=c(8,7))
+WIF_P_2%>%
+  ggplot(aes(x=WIF, y=Share, fill =WIF)) +
+  geom_bar(colour="black", stat="identity") +
+  guides(fill=FALSE)+
+  facet_wrap(~PUMA, scales = "free_x",as.table = TRUE)
+dev.off() #save the plot...
+
+```
+
+```{r}
+# For Clustering Analysis....
+if(!require("cluster")) install.packages("cluster")
+if(!require("factoextra")) install.packages("factoextra")
+if(!require("libcurl4-openssl-dev")) install.packages("libcurl4-openssl-dev")
+if(!require("NbClust")) install.packages("NbClust")
+if(!require("mcmcplots")) install.packages("mcmcplots")
+if(!require("coda")) install.packages("coda")
+install.packages("devtools")
+devtools::install_bitbucket("graumannlabtools/multipanelfigure")
+
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(NbClust)
+library(coda)
+library(mcmcplots)
+library(multipanelfigure)
+
+```
+
+```{r}
+#Clusters Figures....
+#Merge data....
+set.seed(3000)
+
+#AGEP_P,ESR_P,SEX_P,RAC1P_P,HINCP_P,HHT_P,HUPAC_P,NP_P,WIF_P
+
+#Data Cleaning .....
+data1<-cbind(AGEP_P,ESR_P,SEX_P,RAC1P_P,HINCP_P,HHT_P,HUPAC_P,NP_P,WIF_P)
+data1 <-data1[,-c(1)]%>% select_if(~sum(.) > 0)%>%select(-contains("PUMA")) %>% select_if(~sum(.) > 0)
+
+
+
+
+data1[] <- lapply(data1[], unlist)
+data1[] <- lapply(data1[], as.double)
+data1[] <- lapply(data1[], scale)
+
+
+row.names(data1)<- AGEP_P$PUMA
+data1 <- as.data.frame(data1)
+
+png(paste0("All_C",".png"), width=20, height=10, units="in", res=300)
+par(mfrow=c(1,1))
+k2 <- kmeans(data1, centers =4, iter.max = 10)
+str(k2)
+fviz_cluster(k2, data = data1)
+dev.off() #save the plot...
+
+
+Cluster <- k2$cluster
+clustered_data <- cbind(AGEP_P$PUMA,Cluster)
+
+```
+
+
+
+```{r}
+#Clusters Table....
+clusters_table <- function(data1,num_of_clusters){
+set.seed(3000)
+data1 <- data1[,-c(1)]%>% select_if(~sum(.) > 0)%>%select(-contains("PUMA")) %>% select_if(~sum(.) > 0)
+
+data1[] <- lapply(data1[], unlist)
+data1[] <- lapply(data1[], as.double)
+data1[] <- lapply(data1[], scale)
+
+
+data1 <- as.data.frame(data1)
+
+k2 <- kmeans(data1, centers =num_of_clusters, iter.max = 10)
+Cluster <- k2$cluster
+return(Cluster)
+
+}
+
+clustered_data <- as.data.frame(AGEP_P$PUMA)
+colnames(clustered_data)[1]<- "PUMA"
+
+new_Cluster <- clusters_table(cbind(AGEP_P,ESR_P,SEX_P,RAC1P_P,HINCP_P,HHT_P,HUPAC_P,NP_P,WIF_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "All_Cluster"
+
+new_Cluster <- clusters_table(cbind(AGEP_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "AGE_Cluster"
+
+new_Cluster <- clusters_table(cbind(ESR_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "ESR_Cluster"
+
+new_Cluster <- clusters_table(cbind(SEX_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "SEX_Cluster"
+
+new_Cluster <- clusters_table(cbind(RAC1P_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "RAC1P_Cluster"
+
+new_Cluster <- clusters_table(cbind(HHT_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "HHT_Cluster"
+
+new_Cluster <- clusters_table(cbind(HINCP_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "HINCP_Cluster"
+
+new_Cluster <- clusters_table(cbind(HUPAC_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "HUPAC_Cluster"
+
+new_Cluster <- clusters_table(cbind(NP_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "NP_Cluster"
+
+new_Cluster <- clusters_table(cbind(WIF_P),4)
+clustered_data <- cbind(new_Cluster,clustered_data)
+colnames(clustered_data)[1]<- "WIF_Cluster"
+
+
+
+write.csv(clustered_data , "clusters.csv", row.names=FALSE)
+
+
+```
+
+```{r}
+set.seed(3000)
+# Elbow method
+fviz_nbclust(data1, kmeans, method = "wss") +
+  geom_vline(xintercept = 4, linetype = 2) + # add line for better visualization
+  labs(subtitle = "Elbow method") # add subtitle
+
+fviz_nbclust(data1, kmeans, method = "silhouette")
+
+gap_stat <- clusGap(data1, FUN = kmeans, nstart = 25,K.max = 20, B = 50)
+fviz_gap_stat(gap_stat)
+```
+

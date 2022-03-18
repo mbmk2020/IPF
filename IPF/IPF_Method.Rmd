@@ -1,0 +1,124 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+
+install.packages("ipfr","dplyr")
+library(ipfr)
+library(dplyr)
+```
+
+```{r}
+survey <- tibble(
+  size = c(1, 2, 1, 1),
+  autos = c(0, 2, 2, 1),
+  weight = 1
+)
+
+survey
+```
+
+
+```{r}
+targets <- list()
+targets$size <- tibble(
+  `1` = 75,
+  `2` = 25
+)
+targets$autos <- tibble(
+  `0` = 25,
+  `1` = 50,
+  `2` = 25
+)
+```
+
+```{r}
+result <- ipu(survey, targets)
+names(result)
+```
+```{r}
+result <- setup_arizona()
+hh_seed <- result$hh_seed
+hh_targets <- result$hh_targets
+per_seed <- result$per_seed
+per_targets <- result$per_targets
+hh_targets
+```
+
+```{r}
+result <- ipu(hh_seed, hh_targets, per_seed, per_targets, max_iterations = 30)
+
+```
+
+
+```{r}
+# Repeat the hh_seed to create tract 1 and 2 households
+new_hh_seed <- hh_seed %>%
+  mutate(geo_tract = 1)
+new_hh_seed <- bind_rows(
+  new_hh_seed,
+  new_hh_seed %>% 
+    mutate(geo_tract = 2, id = id + 8)
+)
+new_hh_seed$geo_region <- 1
+
+new_hh_seed
+
+# Repeat the household targets for two tracts
+new_hh_targets <- hh_targets
+new_hh_targets$hhtype <- bind_rows(hh_targets$hhtype, hh_targets$hhtype)
+new_hh_targets$hhtype <- new_hh_targets$hhtype %>%
+  mutate(geo_tract = c(1, 2))
+
+new_hh_targets$hhtype
+
+# Repeat the per_seed to create tract 1 and 2 persons
+new_per_seed <- bind_rows(
+  per_seed,
+  per_seed %>% 
+    mutate(id = id + 8)
+)
+
+new_per_seed
+
+# Double the regional person targets
+new_per_targets <- per_targets
+new_per_targets$pertype <- per_targets$pertype %>%
+  mutate_all(list(~. * 2)) %>%
+  mutate(geo_region = 1)
+
+new_per_targets$pertype
+```
+
+```{r}
+result <- ipu(
+  new_hh_seed, new_hh_targets,
+  new_per_seed, new_per_targets,
+  max_iterations = 30
+)
+```
+
+```{r}
+result$primary_comp
+
+result$secondary_comp
+```
+```{r}
+set.seed(42)
+r<-synthesize(result$weight_tbl, group_by = "geo_tract")
+r
+length(r[r$id==3,])
+new_hh_seed[new_hh_seed$id==3,]
+```
+
+```{r}
+set.seed(42)
+r2<-
+  result$weight_tbl %>%
+  group_by(geo_tract) %>%
+  synthesize() 
+
+r2
+```
+

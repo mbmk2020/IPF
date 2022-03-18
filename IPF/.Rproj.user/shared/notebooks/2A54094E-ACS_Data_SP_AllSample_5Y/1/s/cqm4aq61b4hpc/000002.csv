@@ -1,0 +1,6 @@
+"0","```r
+# Merge data....
+ACS_2016_PH_5Y <- left_join(ACS_2016_P_5Y_cropped,ACS_2016_H_5Y_cropped, by = 'SERIALNO')%>%
+   mutate_all(as.numeric)%>%
+   mutate(SERIALNO = format(SERIALNO,scientific=FALSE))
+```"

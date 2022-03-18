@@ -1,0 +1,33 @@
+{
+    "id": "3AE3FF25",
+    "path": "C:/Users/mbmk2020/OneDrive - University of Maryland/Research/R-Projects/IPF/IPF/IPF_Sample_Preparer.Rmd",
+    "project_path": "IPF_Sample_Preparer.Rmd",
+    "type": "r_markdown",
+    "hash": "3309978484",
+    "contents": "",
+    "dirty": false,
+    "created": 1647455687608.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "chunk_output_type": "inline",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "336,0",
+        "scrollLine": "318",
+        "rmdVisualMode": "false",
+        "rmdVisualCollapsedChunks": "",
+        "rmdVisualModeLocation": "3565:4134.39990234375",
+        "rmdVisualWrapConfigured": "true",
+        "docOutlineVisible": "0",
+        "docOutlineSize": "430"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1647575722,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1647575722103,
+    "read_only": false,
+    "read_only_alternatives": []
+}
